@@ -4,18 +4,18 @@
   * Description        : This file provides the code to process the data of IR.
   ******************************************************************************
   * @attention
-  
+
   *
   ******************************************************************************
   */
-#ifndef _IR_PROCESS_H_ 
+#ifndef _IR_PROCESS_H_
 #define _IR_PROCESS_H_
 #include <stddef.h>
 #include "cJSON.h"
 
-#define IR_TEMP_DATA_LENGTH  1638500
+#define IR_TEMP_DATA_LENGTH  1228900
 
-typedef struct 
+typedef struct
 {
     int height;
     int width;

@@ -4,11 +4,11 @@
   * Description        : This file provides the code about tcp server listen.
   ******************************************************************************
   * @attention
-  
+
   *
   ******************************************************************************
   */
-#ifndef _TCP_H_ 
+#ifndef _TCP_H_
 #define _TCP_H_
 #include <sys/socket.h>
 #include <stdint.h>
@@ -16,7 +16,7 @@
 
 void Change_SIGPIPE(void);
 int Tcp_Listen(const char *ip, int port);
-typedef struct 
+typedef struct
 {
 	unsigned char fin;
 	unsigned char opcode;
@@ -31,4 +31,3 @@ typedef struct
 #endif
 
 /************************ZXDQ *****END OF FILE****/
-

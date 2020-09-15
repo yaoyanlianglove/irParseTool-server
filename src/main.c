@@ -11,10 +11,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+ #include <unistd.h>
 #include "main.h" 
 #include "tcp.h"
 #include "ir_process.h"
 #include "debug.h"
+
 /**
   ******************************************************************************
   * Main.
@@ -39,5 +41,5 @@ int main(int argc, char* argv[])
         return -1;
     Change_SIGPIPE();
     Tcp_Listen(argv[1], port);
-    return 0;    
+    return 0; 
 }

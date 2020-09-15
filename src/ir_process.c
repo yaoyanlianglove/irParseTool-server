@@ -4,7 +4,7 @@
   * Description        : This file provides the code to process the data of IR.
   ******************************************************************************
   * @attention
-  
+
   *
   ******************************************************************************
   */
@@ -29,7 +29,7 @@ typedef struct
     unsigned char green;
     unsigned char blue;
     unsigned char alpha;
-}Pixel; 
+}Pixel;
 Pixel pix[954];
 /**
   ******************************************************************************
@@ -39,11 +39,11 @@ Pixel pix[954];
 int Create_Color_Plette(void)
 {
     FILE *fp;
-    unsigned char buff[IR_TEMP_DATA_LENGTH];
+    unsigned char buff[148830];
     unsigned char header[54];
     int jpgPletteLength, i;
-    fp = fopen("/home/ir-palette.bmp", "rb");  
-    if(fp == NULL)  
+    fp = fopen("/home/ir-palette.bmp", "rb");
+    if(fp == NULL)
     {
         dprintf("IR-palette open failed.\n");
         return -1;
@@ -77,8 +77,8 @@ int Get_Ir_Temp_Image(char *irFilePath, IR_Temp_Data *ir_data, unsigned char *im
         dprintf("No irFilePath\n");
         return 404;
     }
-    fp = fopen(irFilePath, "rb");  
-    if(fp == NULL)  
+    fp = fopen(irFilePath, "rb");
+    if(fp == NULL)
     {
         dprintf("IR-temp %s open failed.\n", irFilePath);
         return 404;
@@ -255,7 +255,7 @@ int Get_Ir_Temp_Data(IR_Temp_Data *ir)
             if(fx < min)
                 min = fx;
             avg = (fx + avg)/2;
-        } 
+        }
     }
     ir->maxTempOfArea = max;
     ir->minTempOfArea = min;
@@ -330,7 +330,7 @@ int Get_Ir_Temp_Data_Process(cJSON *json, IR_Temp_Data *ir)
     ir->y2 = itemY2->valueint;
     if(ir->y2 > ir->height)
         return 405;
-    
+
     res = Get_Ir_Temp_Data(ir);
 
     return res;
@@ -368,6 +368,7 @@ int Ir_Data_Process(cJSON *json, IR_Temp_Data *ir, unsigned long *sendLength, un
         case 1:
         if(listLength == 7)
         {
+            
             res = Get_Ir_Temp_Image_Process(json, ir, image, sendLength);
             if(res == 0)
             {
@@ -397,7 +398,7 @@ int Ir_Data_Process(cJSON *json, IR_Temp_Data *ir, unsigned long *sendLength, un
             if(res == 0)
             {
                 memset(sendData, 0, IR_TEMP_DATA_LENGTH);
-                sprintf(header, "{\"code\":%d,\"maxTempOfArea\":%.1f,\"minTempOfArea\":%.1f,\"avgTempOfArea\":%.1f}", 
+                sprintf(header, "{\"code\":%d,\"maxTempOfArea\":%.1f,\"minTempOfArea\":%.1f,\"avgTempOfArea\":%.1f}",
                           itemCode->valueint, ir->maxTempOfArea, ir->minTempOfArea, ir->avgTempOfArea);
                 *sendLength = strlen(header);
                 memcpy(sendData, header, *sendLength);
@@ -411,4 +412,3 @@ int Ir_Data_Process(cJSON *json, IR_Temp_Data *ir, unsigned long *sendLength, un
     }
     return res;
 }
-
