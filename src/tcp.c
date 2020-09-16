@@ -31,8 +31,8 @@
 
 extern pthread_mutex_t pmutex;
 WebSocketPacket g_webSocketPacket[MAX_THREADS];
-int structStatus[MAX_THREADS] = {0};
 ThreadPool g_pool;
+int structStatus[MAX_THREADS] = {0};
 
 /*根据信号的默认处理规则SIGPIPE信号的默认执行动作是terminate(终止、退出),所以进程会退出。若不想客户端退出，需要把 SIGPIPE默认执行动作屏蔽。
 */
@@ -333,11 +333,11 @@ void* Pthread_Websocket(void *arg)
     int  isConnectShouldClose = 0;
     char revBuff[TCP_PACK_LENGTH] = {0};
     char buff_ok[TCP_PACK_LENGTH] = {0};
-    int structNumber = MAX_THREADS;
-    pthread_mutex_lock(&pmutex);
+    int structNumber = MAX_THREADS;    //每个线程对应一个websocket结构体，structNumber用来记录对应的websocket结构体
+    pthread_mutex_lock(&pmutex);   //每个线程都会对全局变量进行操作所以要加锁
     for(i = 0; i < MAX_THREADS; i++)
     {
-        if(structStatus[i] == 0)
+        if(structStatus[i] == 0) //tructStatus[i] 为1表示结构提被占用，为0表示空闲
         {
             structStatus[i] = 1;
             structNumber = i;
@@ -372,7 +372,7 @@ void* Pthread_Websocket(void *arg)
         dprintf("wbsp->ir.temp malloc failed. No memery.\n");
         return NULL;
     }
-    unsigned long websocketDataCounter = 0;
+    unsigned long websocketDataCounter = 0;     
     unsigned long payloadLengthH = 0;
     unsigned long payloadLengthL = 0;
     socketfd = *((int*)arg);

@@ -10,10 +10,12 @@
 
 ### 1.2 参数说明
 
-ir_process.h 中的两个变量定义了服务端支持的红外图片的高和宽。
+ir_process.h 中的四个变量分别定义了服务端支持的红外图片的高和宽与调色板的高和宽。
 ```
 #define SUPPORT_MAX_IMAGE_WIDTH      1024
 #define SUPPORT_MAX_IMAGE_HEIGHT     768
+#define SUPPORT_MAX_PLETTE_WIDTH     50
+#define SUPPORT_MAX_PLETTE_HEIGHT    1024
 ```
 threadpool.h 中的MAX_THREADS定义了服务端支持的最大并发连接数，IDLE_NUM定义了空闲线程数量。
 ```

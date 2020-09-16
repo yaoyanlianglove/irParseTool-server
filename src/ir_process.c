@@ -19,8 +19,7 @@
 #include "base64.h"
 #include "debug.h"
 
-#define SUPPORT_MAX_PLETTE_WIDTH      50
-#define SUPPORT_MAX_PLETTE_HEIGHT     1024
+
 /**
   ******************************************************************************
   * Pixel RGB struct.
