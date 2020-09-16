@@ -13,7 +13,7 @@
 #ifndef _THREAD_POOL_H_                                                                                                                                                                                                                       
 #define _THREAD_POOL_H_
 
-#define MAX_THREADS  3
+#define MAX_THREADS  10
 #define IDLE_NUM     1
 
 typedef struct Task
@@ -24,7 +24,6 @@ typedef struct Task
 }Task;
 
 
-//下面是线程池结构体
 typedef struct ThreadPool
 {  
     Task *begin;       

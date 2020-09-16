@@ -26,6 +26,8 @@ typedef struct
 	int headerLength;
 	int maskKeyLength;
 	unsigned char payloadData[IR_TEMP_DATA_LENGTH];
+    unsigned char sendData[IR_TEMP_DATA_LENGTH];
+    IR_Temp_Data  ir;
 }WebSocketPacket;
 
 #endif

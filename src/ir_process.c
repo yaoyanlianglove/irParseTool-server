@@ -31,6 +31,10 @@ typedef struct
     unsigned char alpha;
 }Pixel; 
 Pixel pix[954];
+
+
+
+
 /**
   ******************************************************************************
   * Get the RGB value of plette.
@@ -148,7 +152,7 @@ int Get_Ir_Temp_Image_Process(cJSON *json, IR_Temp_Data *ir, unsigned char *imag
         return 403;
     }
     ir->width = itemWidth->valueint;
-    if(ir->width > 640)
+    if(ir->width > SUPPORT_MAX_IMAGE_WIDTH)
         return 405;
     itemHeight = cJSON_GetObjectItem(json, "height");
     if(itemHeight == NULL)
@@ -162,7 +166,7 @@ int Get_Ir_Temp_Image_Process(cJSON *json, IR_Temp_Data *ir, unsigned char *imag
         return 403;
     }
     ir->height = itemHeight->valueint;
-    if(ir->height > 480)
+    if(ir->height > SUPPORT_MAX_IMAGE_HEIGHT)
         return 405;
     itemIrFilePath = cJSON_GetObjectItem(json, "path");
     if(itemIrFilePath == NULL)

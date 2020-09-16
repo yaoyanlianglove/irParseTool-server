@@ -29,7 +29,10 @@
 #define SEC_KEY_LENGTH           256
 #define WEBSOCKET_PACK_LENGTH    65535
 
-
+extern pthread_mutex_t pmutex;
+WebSocketPacket g_webSocketPacket[MAX_THREADS];
+int structStatus[MAX_THREADS] = {0};
+ThreadPool g_pool;
 
 /*根据信号的默认处理规则SIGPIPE信号的默认执行动作是terminate(终止、退出),所以进程会退出。若不想客户端退出，需要把 SIGPIPE默认执行动作屏蔽。
 */
@@ -183,8 +186,6 @@ int Websocket_Data_Process(unsigned long length, int fd, WebSocketPacket *wsp)
     unsigned long i = 0;
     int res = 0;
     cJSON *json;
-    IR_Temp_Data ir;
-    char sendData[IR_TEMP_DATA_LENGTH] = {0};
     unsigned long sendLength = 0;
     char errorData[40] = {0};
     if(wsp->opcode == 0x0a)
@@ -205,16 +206,16 @@ int Websocket_Data_Process(unsigned long length, int fd, WebSocketPacket *wsp)
         res = 401;
     }
     if(res == 0)
-        res = Ir_Data_Process(json, &ir, &sendLength, sendData, wsp->payloadData);
+        res = Ir_Data_Process(json, &(wsp->ir), &sendLength, wsp->sendData, wsp->payloadData);
 
     if(res != 0)
     {
         sprintf(errorData, "{\"error\":%d}", res);
         sendLength = strlen(errorData);
-        memset(sendData, '\0', IR_TEMP_DATA_LENGTH);
-        memcpy(sendData, errorData, sendLength);
+        memset(wsp->sendData, '\0', IR_TEMP_DATA_LENGTH);
+        memcpy(wsp->sendData, errorData, sendLength);
     }
-    if(WebSocket_Data_Send(fd, sendData, sendLength) != 0)
+    if(WebSocket_Data_Send(fd, wsp->sendData, sendLength) != 0)
     {
         dprintf("Write data error\n");
         res = -1;
@@ -332,7 +333,24 @@ void* Pthread_Websocket(void *arg)
     int  isConnectShouldClose = 0;
     char revBuff[TCP_PACK_LENGTH] = {0};
     char buff_ok[TCP_PACK_LENGTH] = {0};
-    WebSocketPacket webSocket_Packet;
+    int structNumber = MAX_THREADS;
+    pthread_mutex_lock(&pmutex);
+    for(i = 0; i < MAX_THREADS; i++)
+    {
+        if(structStatus[i] == 0)
+        {
+            structStatus[i] = 1;
+            structNumber = i;
+            break;    
+        }
+    }
+    pthread_mutex_unlock(&pmutex);
+    if(structNumber == MAX_THREADS)
+    {
+        dprintf("structNumber is MAX_THREADS. No memery.\n");
+        return NULL;
+    }
+    WebSocketPacket *wbsp = &(g_webSocketPacket[structNumber]);
     unsigned long websocketDataCounter = 0;
     unsigned long payloadLengthH = 0;
     unsigned long payloadLengthL = 0;
@@ -399,63 +417,66 @@ void* Pthread_Websocket(void *arg)
                 switch(tcpRevCounter)
                 {
                     case 0:
-                    webSocket_Packet.fin = buff_ok[tcpRevCounter] & 0x80;
-                    webSocket_Packet.opcode = buff_ok[tcpRevCounter] & 0x0F;
+                    wbsp->fin = buff_ok[tcpRevCounter] & 0x80;
+                    wbsp->opcode = buff_ok[tcpRevCounter] & 0x0F;
                     tcpRevCounter++;
                     break;
                     case 1:
-                    webSocket_Packet.mask = buff_ok[tcpRevCounter] & 0x80;
-                    webSocket_Packet.headerLength = 2;
-                    if(webSocket_Packet.mask == 0x80)
-                        webSocket_Packet.maskKeyLength = 4;
+                    wbsp->mask = buff_ok[tcpRevCounter] & 0x80;
+                    wbsp->headerLength = 2;
+                    if(wbsp->mask == 0x80)
+                        wbsp->maskKeyLength = 4;
                     else
-                        webSocket_Packet.maskKeyLength = 0;
+                        wbsp->maskKeyLength = 0;
 
-                    webSocket_Packet.payloadLength = buff_ok[tcpRevCounter] & 0x7F;
+                    wbsp->payloadLength = buff_ok[tcpRevCounter] & 0x7F;
                     tcpRevCounter++;
                     break;
                     default:
-                    if(tcpRevCounter < webSocket_Packet.payloadLength + webSocket_Packet.headerLength + webSocket_Packet.maskKeyLength -1)
+                    if(tcpRevCounter < wbsp->payloadLength + wbsp->headerLength + wbsp->maskKeyLength -1)
                     {
                         tcpRevCounter++;
-                        if(tcpRevCounter == (webSocket_Packet.headerLength + 1) && webSocket_Packet.payloadLength == 126)
+                        if(tcpRevCounter == (wbsp->headerLength + 1) && wbsp->payloadLength == 126)
                         {
-                            webSocket_Packet.payloadLength = (buff_ok[webSocket_Packet.headerLength] << 8) + buff_ok[webSocket_Packet.headerLength + 1];
-                            webSocket_Packet.headerLength = 4;
+                            wbsp->payloadLength = (buff_ok[wbsp->headerLength] << 8) + 
+                                                              buff_ok[wbsp->headerLength + 1];
+                            wbsp->headerLength = 4;
                         }
-                        if(tcpRevCounter == (webSocket_Packet.headerLength + 7) && webSocket_Packet.payloadLength == 127)
+                        if(tcpRevCounter == (wbsp->headerLength + 7) && wbsp->payloadLength == 127)
                         {
-                            payloadLengthH = (buff_ok[webSocket_Packet.headerLength] << 24) + (buff_ok[webSocket_Packet.headerLength + 1] << 16) 
-                                     + (buff_ok[webSocket_Packet.headerLength + 2] << 8) + buff_ok[webSocket_Packet.headerLength + 3];
-                            payloadLengthL = (buff_ok[webSocket_Packet.headerLength + 4] << 24) + (buff_ok[webSocket_Packet.headerLength + 5] << 16) 
-                                     + (buff_ok[webSocket_Packet.headerLength + 6] << 8)  + buff_ok[webSocket_Packet.headerLength + 7];
-                            webSocket_Packet.payloadLength = (payloadLengthH << 32) + payloadLengthL;
-                            webSocket_Packet.headerLength = 10;
+                            payloadLengthH = (buff_ok[wbsp->headerLength] << 24) + (buff_ok[wbsp->headerLength + 1] << 16) 
+                                     + (buff_ok[wbsp->headerLength + 2] << 8) + buff_ok[wbsp->headerLength + 3];
+                            payloadLengthL = (buff_ok[wbsp->headerLength + 4] << 24) + (buff_ok[wbsp->headerLength + 5] << 16) 
+                                     + (buff_ok[wbsp->headerLength + 6] << 8)  + buff_ok[wbsp->headerLength + 7];
+                            wbsp->payloadLength = (payloadLengthH << 32) + payloadLengthL;
+                            wbsp->headerLength = 10;
                         }
                     }
                     else //a websocket slice end
                     {
-                        if(webSocket_Packet.mask == 0x80)
+                        if(wbsp->mask == 0x80)
                         {
-                            webSocket_Packet.maskKey[0] = buff_ok[webSocket_Packet.headerLength];
-                            webSocket_Packet.maskKey[1] = buff_ok[webSocket_Packet.headerLength + 1];
-                            webSocket_Packet.maskKey[2] = buff_ok[webSocket_Packet.headerLength + 2];
-                            webSocket_Packet.maskKey[3] = buff_ok[webSocket_Packet.headerLength + 3];
+                            wbsp->maskKey[0] = buff_ok[wbsp->headerLength];
+                            wbsp->maskKey[1] = buff_ok[wbsp->headerLength + 1];
+                            wbsp->maskKey[2] = buff_ok[wbsp->headerLength + 2];
+                            wbsp->maskKey[3] = buff_ok[wbsp->headerLength + 3];
                         }
                         if(websocketDataCounter < IR_TEMP_DATA_LENGTH)
-                            memcpy(webSocket_Packet.payloadData+websocketDataCounter, buff_ok+webSocket_Packet.headerLength+webSocket_Packet.maskKeyLength, webSocket_Packet.payloadLength);
+                            memcpy(wbsp->payloadData+websocketDataCounter, 
+                                buff_ok+wbsp->headerLength+wbsp->maskKeyLength, 
+                                wbsp->payloadLength);
                         else
                             isConnectShouldClose = 1;
-                        websocketDataCounter += webSocket_Packet.payloadLength;
-                        if(webSocket_Packet.fin == 0x80)   //recive all slice
+                        websocketDataCounter += wbsp->payloadLength;
+                        if(wbsp->fin == 0x80)   //recive all slice
                         {
-                            switch(webSocket_Packet.opcode)
+                            switch(wbsp->opcode)
                             {
                                 case 0x00:
                                 case 0x01:
                                 case 0x02:
                                 case 0x0a:
-                                if(Websocket_Data_Process(websocketDataCounter, socketfd, &webSocket_Packet) == -1)
+                                if(Websocket_Data_Process(websocketDataCounter, socketfd, wbsp) == -1)
                                     isConnectShouldClose = 1;
                                 break;
                                 case 0x08:
@@ -467,7 +488,7 @@ void* Pthread_Websocket(void *arg)
                                 default:
                                 isConnectShouldClose = 1;
                             }
-                            memset(webSocket_Packet.payloadData, 0, IR_TEMP_DATA_LENGTH);
+                            memset(wbsp->payloadData, 0, IR_TEMP_DATA_LENGTH);
                             websocketDataCounter = 0;  
                         }
                         memset(buff_ok, 0, TCP_PACK_LENGTH);
@@ -484,6 +505,11 @@ void* Pthread_Websocket(void *arg)
     }
     dprintf("socketfd %d: Pthread_Websocket close!\n", socketfd);
     close(socketfd);
+    pthread_mutex_lock(&pmutex);
+    structStatus[structNumber] = 0;
+    dprintf("**********************structNumber is %d value is %d\n", structNumber, structStatus[structNumber]);
+    pthread_mutex_unlock(&pmutex);
+    return NULL;
 }
 /**
   ******************************************************************************
@@ -504,8 +530,7 @@ int Tcp_Listen(const char *ip, int port)
     char cli_ip[16] = "";  
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
 
-    ThreadPool pool;
-    if(Threadpool_Init(&pool, IDLE_NUM, MAX_THREADS) != 0)
+    if(Threadpool_Init(&g_pool, IDLE_NUM, MAX_THREADS) != 0)
     {
         dprintf("Threadpool_Init failed\n");
         return -1;
@@ -548,7 +573,7 @@ int Tcp_Listen(const char *ip, int port)
         dprintf("client ip=%s   port=%d connfd=%d\n", cli_ip, ntohs(client_addr.sin_port), connfd);  
         if(connfd > 0)
         {
-            err = Threadpool_Add(&pool, Pthread_Websocket, (void*)&connfd);
+            err = Threadpool_Add(&g_pool, Pthread_Websocket, (void*)&connfd);
             if (err != 0)
             {
                 dprintf("Threadpool_Add error\n");
@@ -557,7 +582,7 @@ int Tcp_Listen(const char *ip, int port)
             }
         }
     }
-    Threadpool_Destroy(&pool);
+    Threadpool_Destroy(&g_pool);
     close(listenfd);
     return -1;
 }

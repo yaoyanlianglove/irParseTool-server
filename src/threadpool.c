@@ -40,7 +40,7 @@ void *Thread_Routine(void *arg)
         {   
             dprintf("Thread %d is waiting\n", (int)tid);
             clock_gettime(CLOCK_REALTIME, &abstime);  
-            abstime.tv_sec += 2;
+            abstime.tv_sec += 600;  //空闲进程等待600秒后关闭
             res = pthread_cond_timedwait(&pcond, &pmutex, &abstime);
             if(res == ETIMEDOUT)
             {   
@@ -100,9 +100,7 @@ int Threadpool_Init(ThreadPool *pool, int idleThreads, int maxThreads)
         dprintf("pthread_mutex_init failed\n");
         return res;
     }
-
     res = pthread_cond_init(&pcond, NULL);
-
     if(res != 0)
     {
         dprintf("pthread_cond_init failed\n");

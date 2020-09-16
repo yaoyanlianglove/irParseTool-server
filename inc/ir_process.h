@@ -4,22 +4,26 @@
   * Description        : This file provides the code to process the data of IR.
   ******************************************************************************
   * @attention
-  
+
   *
   ******************************************************************************
   */
-#ifndef _IR_PROCESS_H_ 
+#ifndef _IR_PROCESS_H_
 #define _IR_PROCESS_H_
 #include <stddef.h>
 #include "cJSON.h"
 
-#define IR_TEMP_DATA_LENGTH  1638500
 
-typedef struct 
+#define SUPPORT_MAX_IMAGE_WIDTH      1024
+#define SUPPORT_MAX_IMAGE_HEIGHT     768
+
+#define IR_TEMP_DATA_LENGTH  (SUPPORT_MAX_IMAGE_WIDTH*SUPPORT_MAX_IMAGE_HEIGHT*4 + 100)
+
+typedef struct
 {
     int height;
     int width;
-    float temp[640*480+1];
+    float temp[SUPPORT_MAX_IMAGE_WIDTH*SUPPORT_MAX_IMAGE_HEIGHT + 1];
     float maxTemp;
     float minTemp;
     float maxScale;
