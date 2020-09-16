@@ -23,7 +23,7 @@ typedef struct
 {
     int height;
     int width;
-    float temp[SUPPORT_MAX_IMAGE_WIDTH*SUPPORT_MAX_IMAGE_HEIGHT + 1];
+    float *temp;
     float maxTemp;
     float minTemp;
     float maxScale;

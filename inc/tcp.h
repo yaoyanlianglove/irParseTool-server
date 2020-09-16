@@ -18,15 +18,15 @@ void Change_SIGPIPE(void);
 int Tcp_Listen(const char *ip, int port);
 typedef struct 
 {
-	unsigned char fin;
-	unsigned char opcode;
-	unsigned char mask;
-	unsigned char maskKey[4];
-	unsigned long payloadLength;
-	int headerLength;
-	int maskKeyLength;
-	unsigned char payloadData[IR_TEMP_DATA_LENGTH];
-    unsigned char sendData[IR_TEMP_DATA_LENGTH];
+    unsigned char fin;
+    unsigned char opcode;
+    unsigned char mask;
+    unsigned char maskKey[4];
+    unsigned long payloadLength;
+    int headerLength;
+    int maskKeyLength;
+    unsigned char *payloadData;
+    unsigned char *sendData;
     IR_Temp_Data  ir;
 }WebSocketPacket;
 

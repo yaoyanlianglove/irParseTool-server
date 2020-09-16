@@ -18,6 +18,9 @@
 #include "cJSON.h"
 #include "base64.h"
 #include "debug.h"
+
+#define SUPPORT_MAX_PLETTE_WIDTH      50
+#define SUPPORT_MAX_PLETTE_HEIGHT     1024
 /**
   ******************************************************************************
   * Pixel RGB struct.
@@ -30,11 +33,20 @@ typedef struct
     unsigned char blue;
     unsigned char alpha;
 }Pixel; 
-Pixel pix[954];
+/**
+  ******************************************************************************
+  * Plette struct.  后续要一直使用，所以不用动态分配
+  ******************************************************************************
+  */
+typedef struct
+{
+    Pixel pix[SUPPORT_MAX_PLETTE_HEIGHT*SUPPORT_MAX_PLETTE_WIDTH];
+    int width;
+    int height;
+    unsigned char pletteBuff[IR_TEMP_DATA_LENGTH];
+}Plette; 
 
-
-
-
+Plette plette;
 /**
   ******************************************************************************
   * Get the RGB value of plette.
@@ -43,7 +55,8 @@ Pixel pix[954];
 int Create_Color_Plette(void)
 {
     FILE *fp;
-    unsigned char buff[IR_TEMP_DATA_LENGTH];
+    int width;
+    int height;
     unsigned char header[54];
     int jpgPletteLength, i;
     fp = fopen("/home/ir-palette.bmp", "rb");  
@@ -53,15 +66,35 @@ int Create_Color_Plette(void)
         return -1;
     }
     fread(header, 1, 54, fp);
-    jpgPletteLength = ((header[46] << 24) + (header[47] << 16) + (header[48] << 8) +header[49]) * 4;
-    fread(buff, 1, 954*39*4, fp + jpgPletteLength);
-    for(i=0; i<954; i++)
+    jpgPletteLength = ((header[49] << 24) + (header[48] << 16) + (header[47] << 8) +header[46]) * 4;
+    width = (header[21] << 24) + (header[20] << 16) +  (header[19] << 8) + header[18];
+    height = (header[25] << 24) + (header[24] << 16) +  (header[23] << 8) + header[22];
+    dprintf("IR-palette width is %d.height is %d.\n", width, height);
+    if(height > 0)
     {
-        pix[953 - i].blue   = buff[i*39*4];
-        pix[953 - i].green  = buff[i*39*4 + 1];
-        pix[953 - i].red    = buff[i*39*4 + 2];
-        pix[953 - i].alpha  = buff[i*39*4 + 3];
+        fread(plette.pletteBuff, 1, height*width*4, fp + jpgPletteLength);
+        for(i=0; i<height; i++)
+        {
+            plette.pix[height - i].blue   = plette.pletteBuff[i*width*4];
+            plette.pix[height - i].green  = plette.pletteBuff[i*width*4 + 1];
+            plette.pix[height - i].red    = plette.pletteBuff[i*width*4 + 2];
+            plette.pix[height - i].alpha  = plette.pletteBuff[i*width*4 + 3];
+        }
     }
+    else
+    {
+        height = -height;
+        fread(plette.pletteBuff, 1, height*width*4, fp + jpgPletteLength);
+        for(i=0; i<height; i++)
+        {
+            plette.pix[i].blue   = plette.pletteBuff[i*width*4];
+            plette.pix[i].green  = plette.pletteBuff[i*width*4 + 1];
+            plette.pix[i].red    = plette.pletteBuff[i*width*4 + 2];
+            plette.pix[i].alpha  = plette.pletteBuff[i*width*4 + 3];
+        }
+    } 
+    plette.height = height;
+    plette.width  = width;
     fclose(fp);
     return 0;
 }
@@ -106,18 +139,20 @@ int Get_Ir_Temp_Image(char *irFilePath, IR_Temp_Data *ir_data, unsigned char *im
     }
     for(i=0; i<imageLength/4; i++)
     {
-        y = (ir_data->temp[i] - ir_data->minTemp) *953.0*(ir_data->maxScale - ir_data->minScale)/(ir_data->maxTemp - ir_data->minTemp)
-            + ir_data->minScale * 953;
+        y = (ir_data->temp[i] - ir_data->minTemp) *plette.height*(ir_data->maxScale - ir_data->minScale)/(ir_data->maxTemp - ir_data->minTemp)
+            + ir_data->minScale * plette.height;
         if(ir_data->type == 1)
         {
-            image[i*4] = pix[953 - y].red * 0.5;
-            image[i*4 + 1] = pix[953 - y].green * 0.5;
-            image[i*4 + 2] = pix[953 - y].blue * 0.5;
+            image[i*4]     = plette.pix[plette.height - y].red   * 0.5;
+            image[i*4 + 1] = plette.pix[plette.height - y].green * 0.5;
+            image[i*4 + 2] = plette.pix[plette.height - y].blue  * 0.5;
             image[i*4 + 3] = 0;
         }
         else if(ir_data->type == 2)
         {
-            image[i*4] = (pix[953 - y].red * 0.3 + pix[953 - y].green * 0.59 + pix[953 - y].blue * 0.11)*0.5;
+            image[i*4] = (plette.pix[plette.height - y].red   * 0.3  + 
+                          plette.pix[plette.height - y].green * 0.59 + 
+                          plette.pix[plette.height - y].blue  * 0.11) * 0.5;
             image[i*4 + 1] = image[i*4];
             image[i*4 + 2] = image[i*4];
             image[i*4 + 3] = 0;

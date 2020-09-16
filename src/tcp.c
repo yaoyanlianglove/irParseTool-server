@@ -351,6 +351,27 @@ void* Pthread_Websocket(void *arg)
         return NULL;
     }
     WebSocketPacket *wbsp = &(g_webSocketPacket[structNumber]);
+    wbsp->sendData = malloc(IR_TEMP_DATA_LENGTH);
+    if(wbsp->sendData == NULL)
+    {
+        dprintf("wbsp->sendData malloc failed. No memery.\n");
+        return NULL;
+    }
+    wbsp->payloadData = malloc(IR_TEMP_DATA_LENGTH);
+    if(wbsp->payloadData == NULL)
+    {
+        free(wbsp->sendData);
+        dprintf("wbsp->payloadData malloc failed. No memery.\n");
+        return NULL;
+    }
+    wbsp->ir.temp = malloc(IR_TEMP_DATA_LENGTH);
+    if(wbsp->payloadData == NULL)
+    {
+        free(wbsp->sendData);
+        free(wbsp->payloadData);
+        dprintf("wbsp->ir.temp malloc failed. No memery.\n");
+        return NULL;
+    }
     unsigned long websocketDataCounter = 0;
     unsigned long payloadLengthH = 0;
     unsigned long payloadLengthL = 0;
@@ -504,6 +525,9 @@ void* Pthread_Websocket(void *arg)
         }
     }
     dprintf("socketfd %d: Pthread_Websocket close!\n", socketfd);
+    free(wbsp->sendData);
+    free(wbsp->payloadData);
+    free(wbsp->ir.temp);
     close(socketfd);
     pthread_mutex_lock(&pmutex);
     structStatus[structNumber] = 0;
