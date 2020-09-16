@@ -37,9 +37,9 @@ threadpool.h 中的MAX_THREADS定义了服务端支持的最大并发连接数�
 | maxScale | 温度最大值对应调色板的位置占调色板高度的百分比×100，整型，默认100，详情见图1 |
 | minScale | 温度最小值对应调色板的位置占调色板高度的百分比×100，整型，默认0，详情见图1 |
 
-<center>![图1](https://github.com/yaoyanlianglove/irParseTool-server/blob/master/readme/tu1.jpg)</center>
+![图1](./readme/tu1.jpg)
 
-#### <center>图1 红外图片调色板</center>
+#### 图1 红外图片调色板
 
 ### 2.2 服务端回复
 
