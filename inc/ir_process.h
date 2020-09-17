@@ -39,6 +39,7 @@ typedef struct
     int x2;
     int y1;
     int y2;
+    int code;
 }IR_Temp_Data;
 
 int Create_Color_Plette(void);

@@ -117,7 +117,7 @@ int Get_Ir_Temp_Image(char *irFilePath, IR_Temp_Data *ir_data, unsigned char *im
     if(fp == NULL)  
     {
         dprintf("IR-temp %s open failed.\n", irFilePath);
-        return 404;
+        return 400;
     }
     unsigned long x, y;
     unsigned long imageLength = ir_data->width * ir_data->height * 4;
@@ -159,7 +159,7 @@ int Get_Ir_Temp_Image(char *irFilePath, IR_Temp_Data *ir_data, unsigned char *im
         else
         {
             fclose(fp);
-            return 405;
+            return 404;
         }
     }
     fclose(fp);
@@ -187,7 +187,7 @@ int Get_Ir_Temp_Image_Process(cJSON *json, IR_Temp_Data *ir, unsigned char *imag
     }
     ir->width = itemWidth->valueint;
     if(ir->width > SUPPORT_MAX_IMAGE_WIDTH)
-        return 405;
+        return 404;
     itemHeight = cJSON_GetObjectItem(json, "height");
     if(itemHeight == NULL)
     {
@@ -201,7 +201,7 @@ int Get_Ir_Temp_Image_Process(cJSON *json, IR_Temp_Data *ir, unsigned char *imag
     }
     ir->height = itemHeight->valueint;
     if(ir->height > SUPPORT_MAX_IMAGE_HEIGHT)
-        return 405;
+        return 404;
     itemIrFilePath = cJSON_GetObjectItem(json, "path");
     if(itemIrFilePath == NULL)
     {
@@ -236,7 +236,7 @@ int Get_Ir_Temp_Image_Process(cJSON *json, IR_Temp_Data *ir, unsigned char *imag
     }
     ir->maxScale = (itemMaxScale->valueint)/100.0;
     if(itemMaxScale->valueint > 100)
-        return 405;
+        return 404;
     itemMinScale = cJSON_GetObjectItem(json, "minScale");
     if(itemMinScale == NULL)
     {
@@ -250,7 +250,7 @@ int Get_Ir_Temp_Image_Process(cJSON *json, IR_Temp_Data *ir, unsigned char *imag
     }
     ir->minScale = (itemMinScale->valueint)/100.0;
     if(itemMinScale->valueint > 100)
-        return 405;
+        return 404;
     *sendLength = ir->width * ir->height * 4;
     res = Get_Ir_Temp_Image((char*)itemIrFilePath->valuestring, ir, image);
 
@@ -322,7 +322,7 @@ int Get_Ir_Temp_Data_Process(cJSON *json, IR_Temp_Data *ir)
     }
     ir->x1 = itemX1->valueint;
     if(ir->x1 > ir->width)
-        return 405;
+        return 404;
 
     itemX2 = cJSON_GetObjectItem(json, "x2");
     if(itemX2 == NULL)
@@ -337,7 +337,7 @@ int Get_Ir_Temp_Data_Process(cJSON *json, IR_Temp_Data *ir)
     }
     ir->x2 = itemX2->valueint;
     if(ir->x2 > ir->width)
-        return 405;
+        return 404;
 
     itemY1 = cJSON_GetObjectItem(json, "y1");
     if(itemY1 == NULL)
@@ -352,7 +352,7 @@ int Get_Ir_Temp_Data_Process(cJSON *json, IR_Temp_Data *ir)
     }
     ir->y1 = itemY1->valueint;
     if(ir->y1 > ir->height)
-        return 405;
+        return 404;
 
     itemY2 = cJSON_GetObjectItem(json, "y2");
     if(itemY2 == NULL)
@@ -367,7 +367,7 @@ int Get_Ir_Temp_Data_Process(cJSON *json, IR_Temp_Data *ir)
     }
     ir->y2 = itemY2->valueint;
     if(ir->y2 > ir->height)
-        return 405;
+        return 404;
     
     res = Get_Ir_Temp_Data(ir);
 
@@ -401,6 +401,7 @@ int Ir_Data_Process(cJSON *json, IR_Temp_Data *ir, unsigned long *sendLength, un
         return 402;
     }
     dprintf("code is %d\n", itemCode->valueint);
+    ir->code = itemCode->valueint;
     switch(itemCode->valueint)
     {
         case 1:

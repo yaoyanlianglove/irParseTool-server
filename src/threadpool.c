@@ -40,7 +40,7 @@ void *Thread_Routine(void *arg)
         {   
             dprintf("Thread %d is waiting\n", (int)tid);
             clock_gettime(CLOCK_REALTIME, &abstime);  
-            abstime.tv_sec += 600;  //空闲进程等待600秒后关闭
+            abstime.tv_sec += 5;  //空闲进程等待600秒后关闭
             res = pthread_cond_timedwait(&pcond, &pmutex, &abstime);
             if(res == ETIMEDOUT)
             {   

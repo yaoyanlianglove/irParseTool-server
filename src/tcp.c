@@ -210,7 +210,7 @@ int Websocket_Data_Process(unsigned long length, int fd, WebSocketPacket *wsp)
 
     if(res != 0)
     {
-        sprintf(errorData, "{\"error\":%d}", res);
+        sprintf(errorData, "{\"error\":%d,\"error\":%d}", wsp->ir.code, res);
         sendLength = strlen(errorData);
         memset(wsp->sendData, '\0', IR_TEMP_DATA_LENGTH);
         memcpy(wsp->sendData, errorData, sendLength);
@@ -327,6 +327,8 @@ void* Pthread_Websocket(void *arg)
 {    
     int socketfd;
     int i;
+    int timeCounter = 0;
+    int isAlwaysNoData = 1;
     int tcpRevNum = 0;
     int tcpRevCounter = 0;
     bool isConnected = false;
@@ -379,11 +381,33 @@ void* Pthread_Websocket(void *arg)
     while(1)
     {
         memset(revBuff, 0, TCP_PACK_LENGTH);
-        tcpRevNum = read(socketfd, revBuff, TCP_PACK_LENGTH); 
-        if(tcpRevNum <= 0)
-            break;
-        if(isConnected == false)
+        tcpRevNum = recv(socketfd, revBuff, TCP_PACK_LENGTH, MSG_DONTWAIT); 
+        if(tcpRevNum < 0)
         {
+            if(errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
+            {
+                if(isAlwaysNoData == 1)
+                {
+                    if(timeCounter < 2)//2秒内一次也没收到数据，说明是无效连接，关闭连接
+                    {
+                        timeCounter++;
+                        dprintf("+++++++++++++++++++++++++timeCounter is %d\n", timeCounter);
+                        sleep(1);
+                    }
+                    else
+                        break;
+                }
+            }
+            else
+                break;
+        }
+        else if(tcpRevNum == 0)
+        {
+            break;
+        }
+        else if(isConnected == false)
+        {
+            isAlwaysNoData = 0;
             for(i=0; i<tcpRevNum; i++)
             {
                 buff_ok[tcpRevCounter] = revBuff[i];
@@ -425,7 +449,6 @@ void* Pthread_Websocket(void *arg)
                         else
                             tcpRevCounter++;
                     }
-                    break;
                 }
             }    
             continue;
